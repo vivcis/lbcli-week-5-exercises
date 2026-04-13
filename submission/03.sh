@@ -3,29 +3,8 @@
 
 #!/bin/bash
 
-REDEEM="522102da2f10746e9778dd57bd0276a4f84101c4e0a711f9cfd9f09cde55acbdd2d1912102bfde48be4aa8f4bf76c570e98a8d287f9be5638412ab38dede8e78df82f33fa352ae"
+redeem_script="522102da2f10746e9778dd57bd0276a4f84101c4e0a711f9cfd9f09cde55acbdd2d1912102bfde48be4aa8f4bf76c570e98a8d287f9be5638412ab38dede8e78df82f33fa352ae"
 
-SHA=$(echo -n "$REDEEM" | xxd -r -p | sha256sum | awk '{print $1}')
-WITNESS_SCRIPT="0020${SHA}"
-HASH160=$(echo -n "$WITNESS_SCRIPT" | xxd -r -p | openssl dgst -sha256 -binary | openssl dgst -rmd160 -binary | xxd -p)
-PAYLOAD="c4${HASH160}"
+p2sh_address=$(bitcoin-cli -regtest decodescript "$redeem_script" | jq -r '.segwit["p2sh-segwit"]')
 
-CHECKSUM=$(echo -n "$PAYLOAD" | xxd -r -p | sha256sum | awk '{print $1}' | xxd -r -p | sha256sum | awk '{print $1}' | cut -c1-8)
-FULL="${PAYLOAD}${CHECKSUM}"
-
-python3 -c "
-import sys
-h='$FULL'
-b=bytes.fromhex(h)
-alphabet='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-n=int.from_bytes(b,'big')
-s=''
-while n>0:
-    n,r=divmod(n,58)
-    s=alphabet[r]+s
-# leading zero bytes -> '1'
-for byte in b:
-    if byte==0: s='1'+s
-    else: break
-print(s)
-"
+echo "$p2sh_address"
